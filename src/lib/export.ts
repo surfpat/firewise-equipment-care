@@ -1,5 +1,7 @@
 import type { Data, Rapport } from "./store";
 import { contexteRapport } from "./store";
+import { ESSAIS, lignesRegistre } from "./normes";
+const essaisRows = (r: Rapport) => ESSAIS.map((e) => [e, r.essais?.[e] ? "Conforme" : "Non réalisé"]);
 
 function save(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
@@ -27,9 +29,11 @@ export async function exportPdf(r: Rapport, d: Data) {
   });
   if (c.materiels.length) autoTable(doc, {
     theme: "grid", headStyles: head,
-    head: [["Type", "Marque", "Modèle", "N° série", "Localisation", "État"]],
-    body: c.materiels.map((m) => [m.type, m.marque, m.modele, m.numeroSerie, m.localisation, m.etat]),
+    head: [["Type", "Marque / Modèle", "N° série", "Zone", "Localisation", "NF", "État"]],
+    body: c.materiels.map((m) => [m.type, `${m.marque} ${m.modele}`, m.numeroSerie, m.zone ?? "", m.localisation, m.certifNF ? "Oui" : "Non", m.etat]),
   });
+  autoTable(doc, { theme: "grid", headStyles: head, head: [["Essais / vérifications", "Résultat"]], body: essaisRows(r) });
+  autoTable(doc, { theme: "grid", headStyles: head, head: [["Registre de sécurité (R 123-51)", ""]], body: lignesRegistre(r) });
   autoTable(doc, { theme: "grid", headStyles: head, head: [["Observations"]], body: [[r.observations || "—"]] });
   autoTable(doc, { theme: "grid", headStyles: { fillColor: [200, 30, 30] }, head: [["Anomalies"]], body: [[r.anomalies || "—"]] });
   if (r.pieces.length) autoTable(doc, { theme: "grid", headStyles: head, head: [["Pièce remplacée", "Référence", "Qté"]], body: r.pieces.map((p) => [p.designation, p.reference, p.quantite]) });
@@ -65,7 +69,8 @@ export async function exportDocx(r: Rapport, d: Data) {
     h("Informations"),
     table([["Technicien", r.technicien], ["Client", r.client], ["Site", c.site], ["Adresse", c.adresse], ["Bâtiment", c.batiment], ...(c.materiels.length ? [] : [["Matériel", c.materiel]])]),
   ];
-  if (c.materiels.length) children.push(h("Matériel concerné"), table(c.materiels.map((m) => [m.type, m.marque, m.modele, m.numeroSerie, m.localisation, m.etat]), ["Type", "Marque", "Modèle", "N° série", "Localisation", "État"]));
+  if (c.materiels.length) children.push(h("Matériel concerné"), table(c.materiels.map((m) => [m.type, `${m.marque} ${m.modele}`, m.numeroSerie, m.zone ?? "", m.localisation, m.certifNF ? "Oui" : "Non", m.etat]), ["Type", "Marque / Modèle", "N° série", "Zone", "Localisation", "NF", "État"]));
+  children.push(h("Essais / vérifications"), table(essaisRows(r), ["Essai", "Résultat"]), h("Registre de sécurité (R 123-51)"), table(lignesRegistre(r)));
   children.push(h("Observations"), new D.Paragraph(r.observations || "—"), h("Anomalies"), new D.Paragraph(r.anomalies || "—"));
   if (r.pieces.length) children.push(h("Pièces remplacées"), table(r.pieces.map((p) => [p.designation, p.reference, p.quantite]), ["Désignation", "Référence", "Qté"]));
   children.push(h("Signature technicien"), img(r.signatureTechnicien), h("Signature client"), img(r.signatureClient));

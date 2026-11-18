@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { setData, uid, useData, type Etat, type Materiel } from "@/lib/store";
+import { setData, uid, useData, type Etat, type Materiel, type Site } from "@/lib/store";
+import { alertesSite, CATEGORIES_ERP, CATEGORIES_SSI, TYPES_ERP, ZONES } from "@/lib/normes";
 
 export const Route = createFileRoute("/sites")({
   head: () => ({ meta: [
@@ -13,7 +14,7 @@ export const Route = createFileRoute("/sites")({
 });
 
 const ETATS: Etat[] = ["Fonctionnel", "À surveiller", "Défectueux", "Hors service"];
-export const TYPES = ["Détecteur de fumée", "Détecteur de chaleur", "Déclencheur manuel", "Centrale / ECS", "CMSI", "Diffuseur sonore", "Diffuseur lumineux", "BAES", "Extincteur", "Clapet coupe-feu", "Volet de désenfumage", "Ventouse / DAS", "Autre"];
+export const TYPES = ["Détecteur de fumée", "Détecteur de chaleur", "Déclencheur manuel", "Centrale / ECS", "CMSI", "Diffuseur sonore", "Diffuseur lumineux", "BAES", "Extincteur", "Clapet coupe-feu", "Volet de désenfumage", "Ventouse / DAS", "BAAS", "UGA", "DCM / DCMR", "SDI", "Autre"];
 const etatCls: Record<Etat, string> = { "Fonctionnel": "bg-chart-3/15 text-chart-3", "À surveiller": "bg-accent/30 text-foreground", "Défectueux": "bg-primary/15 text-primary", "Hors service": "bg-secondary text-secondary-foreground" };
 
 function Sites() {
@@ -46,6 +47,7 @@ function SiteCard({ id }: { id: string }) {
           const bIds = bats.map((b) => b.id);
           setData((x) => ({ ...x, sites: x.sites.filter((y) => y.id !== id), batiments: x.batiments.filter((b) => b.siteId !== id), materiels: x.materiels.filter((m) => !bIds.includes(m.batimentId)) })); }}>Supprimer</button>
       </summary>
+      <ReglementSite s={s} />
       <div className="mt-3 space-y-3">
         {bats.map((b) => <BatCard key={b.id} id={b.id} />)}
         <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); if (!bat) return; setData((x) => ({ ...x, batiments: [...x.batiments, { id: uid(), siteId: id, nom: bat }] })); setBat(""); }}>
@@ -54,6 +56,25 @@ function SiteCard({ id }: { id: string }) {
         </form>
       </div>
     </details>
+  );
+}
+
+function ReglementSite({ s }: { s: Site }) {
+  const up = (p: Partial<Site>) => setData((x) => ({ ...x, sites: x.sites.map((y) => (y.id === s.id ? { ...y, ...p } : y)) }));
+  const al = alertesSite(s);
+  const sel = (k: keyof Site, l: string, opts: string[]) => (
+    <label className="block"><span className="label">{l}</span>
+      <select className="input" value={(s[k] as string) ?? ""} onChange={(e) => up({ [k]: e.target.value })}><option value="">—</option>{opts.map((o) => <option key={o}>{o}</option>)}</select></label>);
+  const inp = (k: keyof Site, l: string, type = "text") => (
+    <label className="block"><span className="label">{l}</span><input type={type} className="input" value={(s[k] as string) ?? ""} onChange={(e) => up({ [k]: e.target.value })} /></label>);
+  return (
+    <div className="mt-3 space-y-2 rounded-md border border-border p-3">
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+        {sel("typeErp", "Type d'établissement", TYPES_ERP)}{sel("categorieErp", "Catégorie ERP", CATEGORIES_ERP)}{sel("categorieSsi", "Catégorie SSI", CATEGORIES_SSI)}
+        {inp("contratEntretien", "Contrat d'entretien (prestataire)")}{inp("derniereVerifAnnuelle", "Dernière vérif. annuelle", "date")}{inp("derniereVerifTriennale", "Dernière vérif. triennale", "date")}
+      </div>
+      {al.length > 0 ? al.map((a) => <p key={a} className="text-sm font-semibold text-primary">⚠ {a}</p>) : <p className="text-sm font-semibold text-chart-3">✔ Obligations de vérification à jour</p>}
+    </div>
   );
 }
 
@@ -80,7 +101,7 @@ function BatCard({ id }: { id: string }) {
         {mats.map((m) => (
           <div key={m.id} className="flex flex-wrap items-center gap-2 rounded bg-card p-2 text-sm">
             <span className="font-semibold">{m.type}</span>
-            <span className="text-muted-foreground">{m.marque} {m.modele} · S/N {m.numeroSerie || "—"} · {m.localisation}</span>
+            <span className="text-muted-foreground">{m.marque} {m.modele} · S/N {m.numeroSerie || "—"} · {m.localisation}{m.zone && ` · ${m.zone}`}{m.certifNF ? " · NF" : " · ⚠ non NF"}</span>
             <span className={`rounded px-2 py-0.5 text-xs font-semibold ${etatCls[m.etat]}`}>{m.etat}</span>
             <span className="ml-auto flex gap-3 text-xs">
               <button className="underline" onClick={() => setEdit(m)}>Modifier</button>
@@ -94,6 +115,9 @@ function BatCard({ id }: { id: string }) {
           <label className="block"><span className="label">Type d'équipement</span>
             <select className="input" value={edit.type} onChange={(e) => setEdit({ ...edit, type: e.target.value })}>{TYPES.map((t) => <option key={t}>{t}</option>)}</select></label>
           {f("marque", "Marque")}{f("modele", "Modèle")}{f("numeroSerie", "N° de série")}{f("localisation", "Localisation")}{f("dateMiseEnService", "Date de mise en service", "date")}
+          <label className="block"><span className="label">Zone (dossier d'identité SSI)</span>
+            <select className="input" value={edit.zone ?? ""} onChange={(e) => setEdit({ ...edit, zone: e.target.value })}><option value="">—</option>{ZONES.map((z) => <option key={z}>{z}</option>)}</select></label>
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!edit.certifNF} onChange={(e) => setEdit({ ...edit, certifNF: e.target.checked })} /> Matériel admis à la marque NF (MS 58)</label>
           <label className="block"><span className="label">État</span>
             <select className="input" value={edit.etat} onChange={(e) => setEdit({ ...edit, etat: e.target.value as Etat })}>{ETATS.map((t) => <option key={t}>{t}</option>)}</select></label>
           <div className="flex items-end gap-2"><button className="btn-primary" onClick={save}>Enregistrer</button><button className="btn-ghost" onClick={() => setEdit(null)}>Annuler</button></div>

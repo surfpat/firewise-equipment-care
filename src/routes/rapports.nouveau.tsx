@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { setData, uid, useData, type Rapport, type TypeRapport } from "@/lib/store";
 import { exportDocx, exportPdf } from "@/lib/export";
+import { ESSAIS } from "@/lib/normes";
 import { SignaturePad } from "@/components/SignaturePad";
 
 export const Route = createFileRoute("/rapports/nouveau")({
@@ -86,6 +87,19 @@ function Form() {
             </div>))}
           <button className="btn-ghost mt-2 text-xs" onClick={() => up({ pieces: [...r.pieces, { designation: "", reference: "", quantite: "1" }] })}>+ Ajouter une pièce</button>
         </div>
+      </section>
+      <section className="panel space-y-3">
+        <h2 className="text-xl font-bold">Essais et registre de sécurité</h2>
+        <div className="grid gap-1 md:grid-cols-2">
+          {ESSAIS.map((e) => <label key={e} className="flex items-center gap-2 rounded bg-muted p-2 text-sm">
+            <input type="checkbox" checked={!!r.essais?.[e]} onChange={(ev) => up({ essais: { ...r.essais, [e]: ev.target.checked } })} />{e}</label>)}
+        </div>
+        <label className="block"><span className="label">Opérateur / qualification (ex. APSAD, habilitation)</span><input className="input" value={r.qualification ?? ""} onChange={(e) => up({ qualification: e.target.value })} /></label>
+        <div className="grid gap-2 md:grid-cols-2">
+          {(["debut", "fin"] as const).map((k) => <label key={k}><span className="label">Mise hors service — {k === "debut" ? "début" : "fin"}</span>
+            <input type="datetime-local" className="input" value={r.horsService?.[k] ?? ""} onChange={(e) => up({ horsService: { debut: "", fin: "", mesures: "", ...r.horsService, [k]: e.target.value } })} /></label>)}
+        </div>
+        <label className="block"><span className="label">Mesures compensatoires prises</span><textarea rows={2} className="input" value={r.horsService?.mesures ?? ""} onChange={(e) => up({ horsService: { debut: "", fin: "", ...r.horsService, mesures: e.target.value } })} /></label>
       </section>
       <section className="panel grid gap-4 md:grid-cols-2">
         <SignaturePad key={`t${r.id}`} label="Signature technicien" value={r.signatureTechnicien} onChange={(v) => setR((x) => ({ ...x, signatureTechnicien: v }))} />
