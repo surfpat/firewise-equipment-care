@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { setData, uid, useData, type Etat, type Materiel, type Site } from "@/lib/store";
-import { alertesSite, CATEGORIES_ERP, CATEGORIES_SSI, TYPES_ERP, ZONES } from "@/lib/normes";
+import { setData, uid, useData, type Etat, type Materiel, type Batiment } from "@/lib/store";
+import { alertesBatiment, CATEGORIES_ERP, CATEGORIES_SSI, TYPES_ERP, ZONES } from "@/lib/normes";
 
 export const Route = createFileRoute("/sites")({
   head: () => ({ meta: [
@@ -47,7 +47,6 @@ function SiteCard({ id }: { id: string }) {
           const bIds = bats.map((b) => b.id);
           setData((x) => ({ ...x, sites: x.sites.filter((y) => y.id !== id), batiments: x.batiments.filter((b) => b.siteId !== id), materiels: x.materiels.filter((m) => !bIds.includes(m.batimentId)) })); }}>Supprimer</button>
       </summary>
-      <ReglementSite s={s} />
       <div className="mt-3 space-y-3">
         {bats.map((b) => <BatCard key={b.id} id={b.id} />)}
         <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); if (!bat) return; setData((x) => ({ ...x, batiments: [...x.batiments, { id: uid(), siteId: id, nom: bat }] })); setBat(""); }}>
@@ -59,13 +58,13 @@ function SiteCard({ id }: { id: string }) {
   );
 }
 
-function ReglementSite({ s }: { s: Site }) {
-  const up = (p: Partial<Site>) => setData((x) => ({ ...x, sites: x.sites.map((y) => (y.id === s.id ? { ...y, ...p } : y)) }));
-  const al = alertesSite(s);
-  const sel = (k: keyof Site, l: string, opts: string[]) => (
+function ReglementBatiment({ s }: { s: Batiment }) {
+  const up = (p: Partial<Batiment>) => setData((x) => ({ ...x, batiments: x.batiments.map((y) => (y.id === s.id ? { ...y, ...p } : y)) }));
+  const al = alertesBatiment(s);
+  const sel = (k: keyof Batiment, l: string, opts: string[]) => (
     <label className="block"><span className="label">{l}</span>
       <select className="input" value={(s[k] as string) ?? ""} onChange={(e) => up({ [k]: e.target.value })}><option value="">—</option>{opts.map((o) => <option key={o}>{o}</option>)}</select></label>);
-  const inp = (k: keyof Site, l: string, type = "text") => (
+  const inp = (k: keyof Batiment, l: string, type = "text") => (
     <label className="block"><span className="label">{l}</span><input type={type} className="input" value={(s[k] as string) ?? ""} onChange={(e) => up({ [k]: e.target.value })} /></label>);
   return (
     <div className="mt-3 space-y-2 rounded-md border border-border p-3">
@@ -97,6 +96,7 @@ function BatCard({ id }: { id: string }) {
         <span className="text-xs text-muted-foreground">{mats.length} matériel(s)</span>
         <button className="ml-auto text-xs text-primary underline" onClick={() => confirm("Supprimer ce bâtiment ?") && setData((x) => ({ ...x, batiments: x.batiments.filter((y) => y.id !== id), materiels: x.materiels.filter((m) => m.batimentId !== id) }))}>Supprimer</button>
       </div>
+      <ReglementBatiment s={b} />
       <div className="mt-2 space-y-2">
         {mats.map((m) => (
           <div key={m.id} className="flex flex-wrap items-center gap-2 rounded bg-card p-2 text-sm">

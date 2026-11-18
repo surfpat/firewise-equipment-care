@@ -1,12 +1,12 @@
 import { useSyncExternalStore } from "react";
 
 export type Etat = "Fonctionnel" | "À surveiller" | "Défectueux" | "Hors service";
-export interface Site {
-  id: string; nom: string; adresse: string;
+export interface Site { id: string; nom: string; adresse: string }
+export interface Reglement {
   typeErp?: string | undefined; categorieErp?: string | undefined; categorieSsi?: string | undefined;
   contratEntretien?: string | undefined; derniereVerifAnnuelle?: string | undefined; derniereVerifTriennale?: string | undefined;
 }
-export interface Batiment { id: string; siteId: string; nom: string }
+export interface Batiment extends Reglement { id: string; siteId: string; nom: string }
 export interface Materiel {
   id: string; batimentId: string; type: string; marque: string; modele: string;
   numeroSerie: string; localisation: string; dateMiseEnService: string; etat: Etat;
@@ -32,7 +32,19 @@ const listeners = new Set<() => void>();
 
 function load(): Data {
   if (cache) return cache;
-  try { cache = { ...EMPTY, ...JSON.parse(localStorage.getItem(KEY) || "{}") }; }
+  try {
+    const d: Data = { ...EMPTY, ...JSON.parse(localStorage.getItem(KEY) || "{}") };
+    // Ancien format : infos réglementaires stockées sur le site → recopiées sur ses bâtiments
+    const champs = ["typeErp", "categorieErp", "categorieSsi", "contratEntretien", "derniereVerifAnnuelle", "derniereVerifTriennale"] as const;
+    d.batiments = d.batiments.map((b) => {
+      const s = d.sites.find((x) => x.id === b.siteId) as Record<string, string | undefined> | undefined;
+      const nb: Batiment = { ...b };
+      champs.forEach((k) => { if (!nb[k] && s?.[k]) nb[k] = s[k]; });
+      return nb;
+    });
+    d.sites = d.sites.map(({ id, nom, adresse }) => ({ id, nom, adresse }));
+    cache = d;
+  }
   catch { cache = EMPTY; }
   return cache!;
 }
@@ -56,7 +68,7 @@ export function contexteRapport(r: Rapport, d: Data) {
   const bat = d.batiments.find((b) => b.id === r.batimentId);
   const materiels = d.materiels.filter((m) => r.materielIds.includes(m.id));
   return {
-    site: site ? `${site.nom}${site.typeErp ? ` — ERP type ${site.typeErp}` : ""}${site.categorieErp ? ` ${site.categorieErp} cat.` : ""}${site.categorieSsi ? ` — SSI cat. ${site.categorieSsi}` : ""}` : "", adresse: site?.adresse ?? "", batiment: bat?.nom ?? "",
+    site: site?.nom ?? "", adresse: site?.adresse ?? "", batiment: bat ? `${bat.nom}${bat.typeErp ? ` — ERP type ${bat.typeErp}` : ""}${bat.categorieErp ? ` ${bat.categorieErp} cat.` : ""}${bat.categorieSsi ? ` — SSI cat. ${bat.categorieSsi}` : ""}` : "",
     materiel: materiels.map((m) => `${m.type} ${m.marque} ${m.modele} (S/N ${m.numeroSerie}${m.zone ? `, ${m.zone}` : ""})`).join(", "),
     materiels,
   };

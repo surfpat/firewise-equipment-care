@@ -1,4 +1,4 @@
-import type { Rapport, Site } from "./store";
+import type { Rapport, Reglement } from "./store";
 
 export const TYPES_ERP = ["J", "L", "M", "N", "O", "P", "R", "S", "T", "U", "V", "W", "X", "Y", "CTS", "EF", "GA", "OA", "PA", "PS", "REF", "SG", "IGH", "ERT", "Habitation"];
 export const CATEGORIES_ERP = ["1ère", "2ème", "3ème", "4ème", "5ème"];
@@ -20,8 +20,8 @@ export const ESSAIS = [
 const ans = (iso: string | undefined, now: Date) =>
   iso ? (now.getTime() - new Date(iso).getTime()) / (365.25 * 864e5) : Infinity;
 
-/** Obligations réglementaires non respectées pour un site */
-export function alertesSite(s: Site, now = new Date()): string[] {
+/** Obligations réglementaires non respectées pour un bâtiment */
+export function alertesBatiment(s: Reglement, now = new Date()): string[] {
   const a: string[] = [];
   const ab = s.categorieSsi === "A" || s.categorieSsi === "B";
   if (ans(s.derniereVerifAnnuelle, now) > 1) a.push("Vérification annuelle dépassée ou non renseignée (MS 73 §2)");
