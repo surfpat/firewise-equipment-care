@@ -12,6 +12,14 @@ export interface Materiel {
   numeroSerie: string; localisation: string; dateMiseEnService: string; etat: Etat;
   zone?: string | undefined; certifNF?: boolean | undefined;
 }
+export interface Photo { src: string; w: number; h: number }
+export type StatutControle = "Non testé" | "Bon fonctionnement" | "Défaut";
+export interface Controle {
+  id: string; materielId?: string | undefined; ajouterBase?: boolean | undefined;
+  type: string; marque: string; modele: string; numeroSerie: string; localisation: string;
+  statut: StatutControle; commentaire: string;
+}
+export interface Observation { texte: string; photos: Photo[] }
 export type TypeRapport = "Maintenance" | "Dépannage" | "Mise en service" | "Rapport journalier";
 export interface Piece { designation: string; reference: string; quantite: string }
 export interface Rapport {
@@ -21,6 +29,8 @@ export interface Rapport {
   observations: string; anomalies: string; pieces: Piece[];
   typeCentrale?: string | undefined; qualification?: string | undefined; essais?: Record<string, boolean> | undefined;
   horsService?: { debut: string; fin: string; mesures: string } | undefined;
+  controles?: Controle[] | undefined; observationsList?: Observation[] | undefined;
+  photoArrivee?: Photo | undefined; photoDepart?: Photo | undefined;
   signatureTechnicien?: string | undefined; signatureClient?: string | undefined;
 }
 export interface Data { sites: Site[]; batiments: Batiment[]; materiels: Materiel[]; rapports: Rapport[] }
@@ -49,8 +59,10 @@ function load(): Data {
   return cache!;
 }
 export function setData(fn: (d: Data) => Data) {
-  cache = fn(load());
-  localStorage.setItem(KEY, JSON.stringify(cache));
+  const next = fn(load());
+  try { localStorage.setItem(KEY, JSON.stringify(next)); }
+  catch { alert("Mémoire de l'appareil pleine : retirez des photos ou téléchargez une sauvegarde puis supprimez d'anciens rapports."); return; }
+  cache = next;
   listeners.forEach((l) => l());
 }
 export function useData(): Data {
@@ -61,6 +73,18 @@ export function useData(): Data {
   );
 }
 export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+
+export const controleDepuis = (m: Materiel): Controle => ({
+  id: uid(), materielId: m.id, type: m.type, marque: m.marque, modele: m.modele, numeroSerie: m.numeroSerie, localisation: m.localisation, statut: "Non testé", commentaire: "",
+});
+/** Contrôles du rapport (anciens rapports : reconstruits depuis le matériel coché) */
+export const controlesDe = (r: Rapport, d: Data): Controle[] =>
+  r.controles ?? d.materiels.filter((m) => r.materielIds.includes(m.id)).map(controleDepuis);
+export const observationsDe = (r: Rapport): Observation[] =>
+  r.observationsList ?? (r.observations ? [{ texte: r.observations, photos: [] }] : []);
+/** État du matériel en base après un contrôle */
+export const etatApresControle = (s: StatutControle, actuel: Etat): Etat =>
+  s === "Bon fonctionnement" ? "Fonctionnel" : s === "Défaut" ? "Défectueux" : actuel;
 
 export function contexteRapport(r: Rapport, d: Data) {
   if (r.mode === "manuel") return { ...r.manuel, materiels: [] as Materiel[] };
