@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { setData, uid, useData, type Etat, type Materiel, type Batiment } from "@/lib/store";
-import { alertesBatiment, CATEGORIES_ERP, CATEGORIES_SSI, TYPES_ERP, ZONES } from "@/lib/normes";
+import { alertesBatiment, EXIGENCES, TYPES_CENTRALE, type TypeCentrale, CATEGORIES_ERP, CATEGORIES_SSI, TYPES_ERP, ZONES } from "@/lib/normes";
 
 export const Route = createFileRoute("/sites")({
   head: () => ({ meta: [
@@ -58,9 +58,10 @@ function SiteCard({ id }: { id: string }) {
   );
 }
 
-function ReglementBatiment({ s }: { s: Batiment }) {
+function ReglementBatiment({ s, types }: { s: Batiment; types: string[] }) {
   const up = (p: Partial<Batiment>) => setData((x) => ({ ...x, batiments: x.batiments.map((y) => (y.id === s.id ? { ...y, ...p } : y)) }));
-  const al = alertesBatiment(s);
+  const al = alertesBatiment(s, new Date(), types);
+  const ex = s.typeCentrale ? EXIGENCES[s.typeCentrale as TypeCentrale] : undefined;
   const sel = (k: keyof Batiment, l: string, opts: string[]) => (
     <label className="block"><span className="label">{l}</span>
       <select className="input" value={(s[k] as string) ?? ""} onChange={(e) => up({ [k]: e.target.value })}><option value="">—</option>{opts.map((o) => <option key={o}>{o}</option>)}</select></label>);
@@ -69,9 +70,14 @@ function ReglementBatiment({ s }: { s: Batiment }) {
   return (
     <div className="mt-3 space-y-2 rounded-md border border-border p-3">
       <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
-        {sel("typeErp", "Type d'établissement", TYPES_ERP)}{sel("categorieErp", "Catégorie ERP", CATEGORIES_ERP)}{sel("categorieSsi", "Catégorie SSI", CATEGORIES_SSI)}
-        {inp("contratEntretien", "Contrat d'entretien (prestataire)")}{inp("derniereVerifAnnuelle", "Dernière vérif. annuelle", "date")}{inp("derniereVerifTriennale", "Dernière vérif. triennale", "date")}
+        <label className="col-span-2 block md:col-span-3"><span className="label">Type de centrale / équipement d'alarme</span>
+          <select className="input" value={s.typeCentrale ?? ""} onChange={(e) => { const t = e.target.value as TypeCentrale | ""; const cats = t ? EXIGENCES[t].categoriesSsi : [];
+            up({ typeCentrale: t, ...(t && !cats.includes(s.categorieSsi ?? "") ? { categorieSsi: cats[0] } : {}) }); }}>
+            <option value="">—</option>{TYPES_CENTRALE.map((t) => <option key={t} value={t}>{EXIGENCES[t].libelle}</option>)}</select></label>
+        {sel("typeErp", "Type d'établissement", TYPES_ERP)}{sel("categorieErp", "Catégorie ERP", CATEGORIES_ERP)}{sel("categorieSsi", "Catégorie SSI", ex ? ex.categoriesSsi : CATEGORIES_SSI)}
+        {inp("contratEntretien", ex?.contrat ? "Contrat d'entretien (obligatoire)" : "Contrat d'entretien (prestataire)")}{inp("derniereVerifAnnuelle", "Dernière vérif. annuelle", "date")}{(!ex || ex.triennale) && inp("derniereVerifTriennale", "Dernière vérif. triennale", "date")}
       </div>
+      {ex && <p className="text-xs text-muted-foreground">Matériel exigé : {ex.requis.map((r) => r.nom).join(", ")}</p>}
       {al.length > 0 ? al.map((a) => <p key={a} className="text-sm font-semibold text-primary">⚠ {a}</p>) : <p className="text-sm font-semibold text-chart-3">✔ Obligations de vérification à jour</p>}
     </div>
   );
@@ -96,7 +102,7 @@ function BatCard({ id }: { id: string }) {
         <span className="text-xs text-muted-foreground">{mats.length} matériel(s)</span>
         <button className="ml-auto text-xs text-primary underline" onClick={() => confirm("Supprimer ce bâtiment ?") && setData((x) => ({ ...x, batiments: x.batiments.filter((y) => y.id !== id), materiels: x.materiels.filter((m) => m.batimentId !== id) }))}>Supprimer</button>
       </div>
-      <ReglementBatiment s={b} />
+      <ReglementBatiment s={b} types={mats.map((m) => m.type)} />
       <div className="mt-2 space-y-2">
         {mats.map((m) => (
           <div key={m.id} className="flex flex-wrap items-center gap-2 rounded bg-card p-2 text-sm">

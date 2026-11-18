@@ -1,7 +1,7 @@
 import type { Data, Rapport } from "./store";
 import { contexteRapport } from "./store";
-import { ESSAIS, lignesRegistre } from "./normes";
-const essaisRows = (r: Rapport) => ESSAIS.map((e) => [e, r.essais?.[e] ? "Conforme" : "Non réalisé"]);
+import { essaisPour, lignesRegistre } from "./normes";
+const essaisRows = (r: Rapport) => essaisPour(r.typeCentrale).map((e) => [e, r.essais?.[e] ? "Conforme" : "Non réalisé"]);
 
 function save(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);

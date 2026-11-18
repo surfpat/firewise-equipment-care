@@ -3,7 +3,7 @@ import { useSyncExternalStore } from "react";
 export type Etat = "Fonctionnel" | "À surveiller" | "Défectueux" | "Hors service";
 export interface Site { id: string; nom: string; adresse: string }
 export interface Reglement {
-  typeErp?: string | undefined; categorieErp?: string | undefined; categorieSsi?: string | undefined;
+  typeCentrale?: string | undefined; typeErp?: string | undefined; categorieErp?: string | undefined; categorieSsi?: string | undefined;
   contratEntretien?: string | undefined; derniereVerifAnnuelle?: string | undefined; derniereVerifTriennale?: string | undefined;
 }
 export interface Batiment extends Reglement { id: string; siteId: string; nom: string }
@@ -19,7 +19,7 @@ export interface Rapport {
   mode: "base" | "manuel"; siteId?: string | undefined; batimentId?: string | undefined; materielIds: string[];
   manuel: { site: string; adresse: string; batiment: string; materiel: string };
   observations: string; anomalies: string; pieces: Piece[];
-  qualification?: string | undefined; essais?: Record<string, boolean> | undefined;
+  typeCentrale?: string | undefined; qualification?: string | undefined; essais?: Record<string, boolean> | undefined;
   horsService?: { debut: string; fin: string; mesures: string } | undefined;
   signatureTechnicien?: string | undefined; signatureClient?: string | undefined;
 }

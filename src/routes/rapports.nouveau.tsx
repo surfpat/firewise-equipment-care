@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { setData, uid, useData, type Rapport, type TypeRapport } from "@/lib/store";
 import { exportDocx, exportPdf } from "@/lib/export";
-import { ESSAIS } from "@/lib/normes";
+import { essaisPour, EXIGENCES, TYPES_CENTRALE, type TypeCentrale } from "@/lib/normes";
 import { SignaturePad } from "@/components/SignaturePad";
 
 export const Route = createFileRoute("/rapports/nouveau")({
@@ -59,7 +59,7 @@ function Form() {
             <div className="grid gap-2 md:grid-cols-2">
               <select className="input" value={r.siteId ?? ""} onChange={(e) => up({ siteId: e.target.value, batimentId: undefined, materielIds: [] })}>
                 <option value="">— Site —</option>{d.sites.map((s) => <option key={s.id} value={s.id}>{s.nom}</option>)}</select>
-              <select className="input" value={r.batimentId ?? ""} onChange={(e) => up({ batimentId: e.target.value, materielIds: [] })} disabled={!r.siteId}>
+              <select className="input" value={r.batimentId ?? ""} onChange={(e) => { const bt = d.batiments.find((b) => b.id === e.target.value); up({ batimentId: e.target.value, materielIds: [], ...(bt?.typeCentrale ? { typeCentrale: bt.typeCentrale } : {}) }); }} disabled={!r.siteId}>
                 <option value="">— Bâtiment —</option>{bats.map((b) => <option key={b.id} value={b.id}>{b.nom}</option>)}</select>
             </div>
             {mats.length > 0 && <div className="space-y-1"><span className="label">Matériel concerné</span>
@@ -90,8 +90,11 @@ function Form() {
       </section>
       <section className="panel space-y-3">
         <h2 className="text-xl font-bold">Essais et registre de sécurité</h2>
+        <label className="block"><span className="label">Type de centrale</span>
+          <select className="input" value={r.typeCentrale ?? ""} onChange={(e) => up({ typeCentrale: e.target.value })}>
+            <option value="">— Tous les essais —</option>{TYPES_CENTRALE.map((t) => <option key={t} value={t}>{EXIGENCES[t as TypeCentrale].libelle}</option>)}</select></label>
         <div className="grid gap-1 md:grid-cols-2">
-          {ESSAIS.map((e) => <label key={e} className="flex items-center gap-2 rounded bg-muted p-2 text-sm">
+          {essaisPour(r.typeCentrale).map((e) => <label key={e} className="flex items-center gap-2 rounded bg-muted p-2 text-sm">
             <input type="checkbox" checked={!!r.essais?.[e]} onChange={(ev) => up({ essais: { ...r.essais, [e]: ev.target.checked } })} />{e}</label>)}
         </div>
         <label className="block"><span className="label">Opérateur / qualification (ex. APSAD, habilitation)</span><input className="input" value={r.qualification ?? ""} onChange={(e) => up({ qualification: e.target.value })} /></label>

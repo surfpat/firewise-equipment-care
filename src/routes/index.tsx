@@ -41,7 +41,7 @@ function Index() {
           <div key={l} className="panel"><div className="label">{l}</div><div className="font-display text-4xl font-bold">{n}</div></div>
         ))}
       </div>
-      {d.batiments.flatMap((s) => alertesBatiment(s).map((a) => <div key={s.id + a} className="panel border-primary text-sm"><b>{d.sites.find((x) => x.id === s.siteId)?.nom} · {s.nom}</b> — <span className="text-primary">{a}</span></div>))}
+      {d.batiments.flatMap((s) => alertesBatiment(s, new Date(), d.materiels.filter((m) => m.batimentId === s.id).map((m) => m.type)).map((a) => <div key={s.id + a} className="panel border-primary text-sm"><b>{d.sites.find((x) => x.id === s.siteId)?.nom} · {s.nom}</b> — <span className="text-primary">{a}</span></div>))}
       {defect > 0 && <div className="panel border-primary text-primary font-semibold">⚠ {defect} matériel(s) défectueux ou hors service</div>}
       <section className="panel">
         <h2 className="text-xl font-bold">Sauvegarde</h2>
