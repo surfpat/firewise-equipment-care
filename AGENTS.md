@@ -28,3 +28,6 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+- Data is stored in browser localStorage (src/lib/store.ts) with JSON backup/restore; user asked for the simplest free setup without a server.
+- PDF (jspdf) and Word (docx) exports are generated client-side in src/lib/export.ts.
