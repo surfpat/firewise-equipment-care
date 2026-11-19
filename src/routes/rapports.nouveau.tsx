@@ -83,10 +83,10 @@ function Form() {
                 <input className="input" value={r.manuel[k]} onChange={(e) => up({ manuel: { ...r.manuel, [k]: e.target.value } })} /></label>))}
           </div>
         )}
+        <PhotoInput label="Photo à l'arrivée" multiple={false} photos={r.photoArrivee ? [r.photoArrivee] : []} onChange={(p) => setR((x) => ({ ...x, photoArrivee: p[0] }))} />
       </section>
       <Controles r={r} up={up} peutAjouterBase={r.mode === "base" && !!r.batimentId} />
       <section className="panel grid gap-4 md:grid-cols-2">
-        <PhotoInput label="Photo à l'arrivée" multiple={false} photos={r.photoArrivee ? [r.photoArrivee] : []} onChange={(p) => setR((x) => ({ ...x, photoArrivee: p[0] }))} />
         <PhotoInput label="Photo au départ" multiple={false} photos={r.photoDepart ? [r.photoDepart] : []} onChange={(p) => setR((x) => ({ ...x, photoDepart: p[0] }))} />
       </section>
       <section className="panel space-y-3">
